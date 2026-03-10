@@ -32,31 +32,63 @@ class TaskManager:
     def add_task(self):
         user_task = input("Введіть ваше завдання: ").strip().capitalize()
         self.tasks.append({"task": user_task, "done": False})
+        print("Нове завдання додано!")
+
+    def del_task(self):
+        try:
+            for i, task in enumerate(self.tasks, start=1):
+                print(f"{i}. {task}")
+            n = int(input("Введіть номер завдання для видалення: "))
+            task_to_del = n - 1
+            del self.tasks[task_to_del]
+            print("Ваше завдання видалено!")
+        except (ValueError, IndexError):
+            print("Ви вийшли за межі, або ввели не число")
+
+    def done_task(self):
+        try:
+            for i, task in enumerate(self.tasks, start=1):
+                print(f"{i}. {task}")
+            n = int(input("Введіть номер завдання для відмітки: "))
+            task_to_true = n - 1
+            task = self.tasks[task_to_true]
+            if task["done"] == False:
+                task["done"] = True
+                print("Ваше завдання відмічено як виконане!")
+            else:
+                print("Завдання вже виконане.")
+                return
+
+        except (ValueError, IndexError):
+            print("Ви вийшли за межі, або ввели не число")
 
 
 def main():
     manager = TaskManager()
     print("Ви у менеджері задач!")
-    print("Ось список доступних дій: ")
-    print("1 - показати задачі")
-    print("2 - додати задачу")
-    print("3 - видалити задачу")
-    print("4 - позначити задачу як виконану")
-    print("0 - вийти")
-    choice = input("Введіть номер дії: ")
-    if choice not in ('0', '1', '2', '3', '4'):
-        print("Помилка: інших дій немає")
-    elif choice == '1':
-        manager.show_tasks()
-    elif choice == '2':
-        manager.add_task()
-        manager.save_file()
-    elif choice == '3':
-        del_task()
-    elif choice == '4':
-        done_task()
-    else:
-        return
+    while True:
+        print("\nОсь список доступних дій: ")
+        print("1 - показати задачі")
+        print("2 - додати задачу")
+        print("3 - видалити задачу")
+        print("4 - позначити задачу як виконану")
+        print("0 - вийти")
+        choice = input("Введіть номер дії: ")
+        if choice not in ('0', '1', '2', '3', '4'):
+            print("Помилка: інших дій немає")
+        elif choice == '1':
+            manager.show_tasks()
+        elif choice == '2':
+            manager.add_task()
+            manager.save_file()
+        elif choice == '3':
+            manager.del_task()
+            manager.save_file()
+        elif choice == '4':
+            manager.done_task()
+            manager.save_file()
+        else:
+            break
 
 if __name__ == "__main__":
     main()
