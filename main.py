@@ -26,11 +26,15 @@ class TaskManager:
             json.dump(self.tasks, file, indent=4, ensure_ascii=False)
 
     def show_tasks(self):
-        for el in self.tasks:
-            print(el)
+        if not self.tasks:
+            print("Задач немає")
+            return
+        for i, task in enumerate(self.tasks, start=1):
+            status = "✔" if task["done"] else "✘"
+            print(f"{i}. {task['task']} [{status}]")
 
     def add_task(self):
-        user_task = input("Введіть ваше завдання: ").strip().capitalize()
+        user_task = input("Введіть ваше завдання: ").strip()
         self.tasks.append({"task": user_task, "done": False})
         print("Нове завдання додано!")
 
@@ -52,7 +56,7 @@ class TaskManager:
             n = int(input("Введіть номер завдання для відмітки: "))
             task_to_true = n - 1
             task = self.tasks[task_to_true]
-            if task["done"] == False:
+            if not task["done"]:
                 task["done"] = True
                 print("Ваше завдання відмічено як виконане!")
             else:
@@ -62,6 +66,14 @@ class TaskManager:
         except (ValueError, IndexError):
             print("Ви вийшли за межі, або ввели не число")
 
+    def show_pending(self):
+        for i, task in enumerate(self.tasks, start=1):
+            if not task["done"]:
+                print(f"{i}. {task['task']}")
+
+    def clear_done(self):
+        self.tasks = [task for task in self.tasks if not task['done']]
+        print("Виконані завдання очищено")
 
 def main():
     manager = TaskManager()
@@ -72,9 +84,11 @@ def main():
         print("2 - додати задачу")
         print("3 - видалити задачу")
         print("4 - позначити задачу як виконану")
+        print("5 - показати невиконані задачі")
+        print("6 - очистити виконані задачі")
         print("0 - вийти")
         choice = input("Введіть номер дії: ")
-        if choice not in ('0', '1', '2', '3', '4'):
+        if choice not in ('0', '1', '2', '3', '4', '5', '6'):
             print("Помилка: інших дій немає")
         elif choice == '1':
             manager.show_tasks()
@@ -86,6 +100,11 @@ def main():
             manager.save_file()
         elif choice == '4':
             manager.done_task()
+            manager.save_file()
+        elif choice == '5':
+            manager.show_pending()
+        elif choice == '6':
+            manager.clear_done()
             manager.save_file()
         else:
             break
