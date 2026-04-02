@@ -1,79 +1,71 @@
-import os
-import json
+import sqlite3
+from pathlib import Path
 
 class TaskManager:
-    FILE = "tasks.json"
     def __init__(self):
-        self.tasks = self.load_file()
-    def load_file(self):
-        if os.path.isfile(self.FILE):
-            try:
-                with open(self.FILE, "r") as file:
-                    return json.load(file)
-            except (ValueError, json.JSONDecodeError):
-                return self.default_tasks()
-        else:
-            return self.default_tasks()
+        self.FILE = sqlite3.connect("tasks.db")
+        self.path = Path('tasks.db')
 
-    def default_tasks(self):
-        return [
-                {"task": "Купити молоко", "done": False},
-                {"task": "Піти погуляти", "done": True}
-            ]
-
-    def save_file(self):
-        with open(self.FILE, "w", encoding="utf-8") as file:
-            json.dump(self.tasks, file, indent=4, ensure_ascii=False)
-
+        self.c = self.FILE.cursor()
+        self.c.execute("""CREATE TABLE IF NOT EXISTS tasks (
+                    id integer PRIMARY KEY AUTOINCREMENT,
+                    task text,
+                    done INTEGER
+                )""")
     def show_tasks(self):
-        if not self.tasks:
-            print("Задач немає")
-            return
-        for i, task in enumerate(self.tasks, start=1):
-            status = "✔" if task["done"] else "✘"
-            print(f"{i}. {task['task']} [{status}]")
+        self.c.execute("SELECT * FROM tasks")
+        items = self.c.fetchall()
+        for i, el in enumerate(items, start=1):
+            status = "✔" if el[2] else "✘"
+            print(f"{i}. {el[1]} [{status}]")
 
     def add_task(self):
         user_task = input("Введіть ваше завдання: ").strip()
-        self.tasks.append({"task": user_task, "done": False})
-        print("Нове завдання додано!")
+        self.c.execute("INSERT INTO tasks (task, done) VALUES (?, ?) ",
+                       (user_task, 0))
+        self.FILE.commit()
 
     def del_task(self):
         try:
-            for i, task in enumerate(self.tasks, start=1):
-                print(f"{i}. {task}")
+            self.c.execute("SELECT * FROM tasks")
+            items = self.c.fetchall()
+            for el in items:
+                print(el)
             n = int(input("Введіть номер завдання для видалення: "))
-            task_to_del = n - 1
-            del self.tasks[task_to_del]
+            self.c.execute("DELETE FROM tasks WHERE id = ?", (n,))
             print("Ваше завдання видалено!")
         except (ValueError, IndexError):
             print("Ви вийшли за межі, або ввели не число")
+        self.FILE.commit()
+
 
     def done_task(self):
         try:
-            for i, task in enumerate(self.tasks, start=1):
-                print(f"{i}. {task}")
+            self.c.execute("SELECT * FROM tasks")
+            items = self.c.fetchall()
+            for el in items:
+                print(el)
             n = int(input("Введіть номер завдання для відмітки: "))
-            task_to_true = n - 1
-            task = self.tasks[task_to_true]
-            if not task["done"]:
-                task["done"] = True
-                print("Ваше завдання відмічено як виконане!")
-            else:
-                print("Завдання вже виконане.")
-                return
+            self.c.execute(f"UPDATE tasks SET done = 1 WHERE id = ?", (n,))
+            self.FILE.commit()
 
         except (ValueError, IndexError):
             print("Ви вийшли за межі, або ввели не число")
 
     def show_pending(self):
-        for i, task in enumerate(self.tasks, start=1):
-            if not task["done"]:
-                print(f"{i}. {task['task']}")
+        self.c.execute("SELECT * FROM tasks WHERE done = 0")
+        items = self.c.fetchall()
+        for el in items:
+            print(el)
 
     def clear_done(self):
-        self.tasks = [task for task in self.tasks if not task['done']]
-        print("Виконані завдання очищено")
+        self.c.execute("DELETE FROM tasks WHERE done = 1")
+        items = self.c.fetchall()
+        for el in items:
+            print(el)
+
+        self.FILE.commit()
+
 
 def main():
     manager = TaskManager()
@@ -94,18 +86,14 @@ def main():
             manager.show_tasks()
         elif choice == '2':
             manager.add_task()
-            manager.save_file()
         elif choice == '3':
             manager.del_task()
-            manager.save_file()
         elif choice == '4':
             manager.done_task()
-            manager.save_file()
         elif choice == '5':
             manager.show_pending()
         elif choice == '6':
             manager.clear_done()
-            manager.save_file()
         else:
             break
 
