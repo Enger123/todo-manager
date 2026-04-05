@@ -1,5 +1,7 @@
 import sqlite3
 from pathlib import Path
+from selectors import SelectorKey
+
 
 class TaskManager:
     def __init__(self):
@@ -30,22 +32,28 @@ class TaskManager:
         print("\nЗадачу додано.")
 
     def del_task(self):
-        self.c.execute("SELECT * FROM tasks")
-        items = self.c.fetchall()
-        for el in items:
-            status = "✔" if el[2] else "✘"
-            print(f"ID: {el[0]} | {el[1]} [{status}]")
-        n = input("Введіть номер завдання для видалення: ")
-        if not n.isdigit():
-            print("Введіть число")
-            return
-        n = int(n)
-        self.c.execute("DELETE FROM tasks WHERE id = ?", (n,))
-        if self.c.rowcount == 0:
-            print("\nЗадача не знайдена")
+        choice = input("Ви впевнені? (y/n): ").strip()
+        if choice not in ('y', 'n'):
+            print("Такого варіанту немає")
+        elif choice == 'y':
+            self.c.execute("SELECT * FROM tasks")
+            items = self.c.fetchall()
+            for el in items:
+                status = "✔" if el[2] else "✘"
+                print(f"ID: {el[0]} | {el[1]} [{status}]")
+            n = input("Введіть номер завдання для видалення: ")
+            if not n.isdigit():
+                print("Введіть число")
+                return
+            n = int(n)
+            self.c.execute("DELETE FROM tasks WHERE id = ?", (n,))
+            if self.c.rowcount == 0:
+                print("\nЗадача не знайдена")
+            else:
+                print("\nЗавдання видалено")
+            self.FILE.commit()
         else:
-            print("\nЗавдання видалено")
-        self.FILE.commit()
+            return
 
 
     def done_task(self):
@@ -91,14 +99,34 @@ class TaskManager:
         for el in items:
             status = "✔" if el[2] else "✘"
             print(f"ID: {el[0]} | {el[1]} [{status}]")
-        id_to_edit = int(input("Введіть id для редагування: "))
-        task_to_edit = input("Введіть нове питання: ").strip()
-        self.c.execute("UPDATE tasks SET task = ? WHERE id = ?", (task_to_edit, id_to_edit))
-        if self.c.rowcount == 0:
-            print("\nЗадача не знайдена")
+        id_to_edit = input("Введіть id для редагування: ")
+        if id_to_edit.isdigit():
+            task_to_edit = input("Введіть нове питання: ").strip()
+            self.c.execute("UPDATE tasks SET task = ? WHERE id = ?", (task_to_edit, id_to_edit))
+            if self.c.rowcount == 0:
+                print("\nЗадача не знайдена")
+            else:
+                print("\nЗавдання змінено на нове")
+            self.FILE.commit()
         else:
-            print("\nЗавдання змінено на нове")
-        self.FILE.commit()
+            print("ID повинно бути числом")
+
+    def show_stats(self):
+        self.c.execute("SELECT COUNT(*) FROM tasks")
+        total = self.c.fetchone()
+        print(f"Всього задач: {total[0]}")
+        self.c.execute("SELECT COUNT(*) FROM tasks WHERE done = 1")
+        done = self.c.fetchone()
+        print(f"Виконано: {done[0]}")
+        self.c.execute("SELECT COUNT(*) FROM tasks WHERE done = 0")
+        not_done = self.c.fetchone()
+        print(f"Не виконано: {not_done[0]}")
+        try:
+            progress = done / total * 100
+            print(f"Прогрес: {progress}%")
+        except ZeroDivisionError:
+            print("Загальна кількість питань = 0, визначити неможливо")
+
 
 def main():
     manager = TaskManager()
@@ -113,9 +141,10 @@ def main():
         print("6 - очистити виконані задачі")
         print("7 - показати тільки виконані задачі")
         print("8 - редагувати завдання")
+        print("9 - показати загальну статистику")
         print("0 - вийти")
         choice = input("Введіть номер дії: ")
-        if choice not in ('0', '1', '2', '3', '4', '5', '6', '7', '8'):
+        if choice not in ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9'):
             print("Помилка: інших дій немає")
         elif choice == '1':
             manager.show_tasks()
@@ -133,6 +162,8 @@ def main():
             manager.show_done_tasks()
         elif choice == '8':
             manager.edit_task()
+        elif choice == '9':
+            manager.show_stats()
 
         else:
             break
